@@ -15,8 +15,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@companion-module/base": "~1.11.0",
-		"lilliput-monitor": "github:peternewman/lilliput-monitor",
-		"raw-device": "github:peternewman/raw-device#udp"
+		"lilliput-monitor": "github:peternewman/lilliput-monitor"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"devDependencies": {

@@ -982,12 +982,6 @@ raw-device@1.1.x:
   dependencies:
     serialport "10.x"
 
-"raw-device@github:peternewman/raw-device#udp":
-  version "1.2.0"
-  resolved "https://codeload.github.com/peternewman/raw-device/tar.gz/455288c9feb590118d9629e884f3523f77895a6c"
-  dependencies:
-    serialport "10.x"
-
 rechoir@^0.8.0:
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/rechoir/-/rechoir-0.8.0.tgz#49f866e0d32146142da3ad8f0eff352b3215ff22"
