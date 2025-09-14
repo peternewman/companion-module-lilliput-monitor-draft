@@ -1,6 +1,5 @@
-## Samsung Display MD series
+## Lilliput Monitor
 
 **Available commands in this module**
 
-- Power on
-- Power off
+- Input select
