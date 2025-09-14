@@ -761,9 +761,9 @@ kind-of@^6.0.2:
 
 "lilliput-monitor@github:peternewman/lilliput-monitor":
   version "0.0.1"
-  resolved "https://codeload.github.com/peternewman/lilliput-monitor/tar.gz/a90ec32ef68cda7abd6e3128fbb9dcb3671a9749"
+  resolved "https://codeload.github.com/peternewman/lilliput-monitor/tar.gz/82cb69fe215753cd171e5de04069cb08b7dca776"
   dependencies:
-    raw-device "1.1.x"
+    raw-device "github:peternewman/raw-device#udp"
     xml2js "^0.4.23"
 
 loader-runner@^4.2.0:
@@ -975,10 +975,9 @@ randombytes@^2.1.0:
   dependencies:
     safe-buffer "^5.1.0"
 
-raw-device@1.1.x:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/raw-device/-/raw-device-1.1.1.tgz#351827e45edb10cba49a5b55017ec41f2460f56f"
-  integrity sha512-qgWJ+uyyhYCfDhKptvt6lnl4ieHZdoJr4fvp3D1luO5gnS1XQLy56LR97kpbCybWuss4lmyJi4BFE+DvXWkdmw==
+"raw-device@github:peternewman/raw-device#udp":
+  version "1.2.0"
+  resolved "https://codeload.github.com/peternewman/raw-device/tar.gz/455288c9feb590118d9629e884f3523f77895a6c"
   dependencies:
     serialport "10.x"
 
