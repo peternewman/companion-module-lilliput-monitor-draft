@@ -1,11 +1,11 @@
-const { InstanceBase, InstanceStatus, TCPHelper, Regex, runEntrypoint } = require('@companion-module/base')
+const { InstanceBase, InstanceStatus, Regex, runEntrypoint } = require('@companion-module/base')
 const { combineRgb } = require('@companion-module/base')
-const SamsungD = require('samsung-lfd')
+const LilliputD = require('lilliput-monitor')
 const UpgradeScripts = require('./upgrades.js')
 const { PassThrough } = require('stream')
 
-class SamsungDisplayInstance extends InstanceBase {
-	processSamsungDData(data) {
+class LilliputMonitorInstance extends InstanceBase {
+	processLilliputDData(data) {
 		return data.dev.command.reduce(function (map, obj) {
 			if (!(obj.value === undefined) && obj.value) {
 				let values = obj.value
@@ -54,10 +54,6 @@ class SamsungDisplayInstance extends InstanceBase {
 			{ id: 'on', label: 'On' },
 		]
 
-		this.CHOICES_MUTE = this.CHOICES_ON_OFF
-		this.CHOICES_POWER = this.CHOICES_ON_OFF
-		this.CHOICES_WALL = this.CHOICES_ON_OFF
-
 		this.CHOICES_0_100 = [
 			{ id: '0', label: '0' },
 			{ id: '25', label: '25' },
@@ -74,19 +70,14 @@ class SamsungDisplayInstance extends InstanceBase {
 		this.CHOICES_TINT = this.CHOICES_0_100
 
 		var tunnel = new PassThrough()
-		var tmpdev = new SamsungD({ stream: tunnel, id: 0 }, { disconnect: true })
-		//this.log('debug', 'SamsungD data ' + JSON.stringify(tmpdev.data.dev.command))
-		const commands = this.processSamsungDData(tmpdev.data)
-		//this.log('debug', 'Processed SamsungD data ' + JSON.stringify(commands))
+		var tmpdev = new LilliputD({ stream: tunnel }, { disconnect: true })
+		//this.log('debug', 'LilliputD data ' + JSON.stringify(tmpdev.data.dev.command))
+		const commands = this.processLilliputDData(tmpdev.data)
+		//this.log('debug', 'Processed LilliputD data ' + JSON.stringify(commands))
 
-		this.log(
-			'debug',
-			'SamsungD wallMode wallMode ' + JSON.stringify(this.generateChoices(commands, 'wallMode', 'wallMode')),
-		)
+		this.log('debug', 'LilliputD input input ' + JSON.stringify(this.generateChoices(commands, 'input', 'input')))
 
 		this.CHOICES_INPUT = this.generateChoices(commands, 'input', 'input')
-
-		this.CHOICES_WALL_MODE = this.generateChoices(commands, 'wallMode', 'wallMode')
 
 		this.PRESETS_SETTINGS = [
 			{
@@ -97,16 +88,8 @@ class SamsungDisplayInstance extends InstanceBase {
 				choices: this.CHOICES_INPUT,
 				category: 'Input',
 			},
-			{
-				action: 'mute',
-				setting: 'state',
-				feedback: 'mute',
-				label: 'Mute ',
-				choices: this.CHOICES_MUTE,
-				category: 'Volume',
-			},
 
-			{
+			/*{
 				action: 'volume',
 				setting: 'volume',
 				feedback: 'volume',
@@ -153,30 +136,14 @@ class SamsungDisplayInstance extends InstanceBase {
 				label: 'Tint ',
 				choices: this.CHOICES_TINT,
 				category: 'Picture',
-			},
-			{
-				action: 'wall',
-				setting: 'state',
-				feedback: 'wall',
-				label: 'Wall ',
-				choices: this.CHOICES_WALL,
-				category: 'Wall',
-			},
-			{
-				action: 'wallMode',
-				setting: 'mode',
-				feedback: 'wallMode',
-				label: 'Wall Mode ',
-				choices: this.CHOICES_WALL_MODE,
-				category: 'Wall',
-			},
+			},*/
 		]
 
 		this.actions(this) // export actions
 		this.init_variables()
 		this.init_feedbacks()
 		this.init_presets()
-		this.init_tcp()
+		this.init_udp()
 	}
 
 	configUpdated(config) {
@@ -187,10 +154,10 @@ class SamsungDisplayInstance extends InstanceBase {
 			delete this.socket
 		}
 
-		this.init_tcp()
+		this.init_udp()
 	}
 
-	init_tcp() {
+	init_udp() {
 		let self = this
 
 		if (self.dev !== undefined) {
@@ -204,18 +171,12 @@ class SamsungDisplayInstance extends InstanceBase {
 		} else if (!self.config.port) {
 			self.updateStatus(InstanceStatus.BadConfig, `Port is missing`)
 			return
-		} else if (self.config.id == undefined || self.config.id === '') {
-			self.updateStatus(InstanceStatus.BadConfig, `ID is missing`)
-			return
 		}
 
 		self.updateStatus(InstanceStatus.Connecting)
 
 		// Disconnect = false to match the previous behaviour of the module, although we don't get as much connection feedback this way
-		self.dev = new SamsungD(
-			{ host: self.config.host, port: self.config.port, id: self.config.id },
-			{ disconnect: false },
-		)
+		self.dev = new LilliputD({ host: self.config.host, port: self.config.port }, { disconnect: false })
 		// self.dev.emitter.on('connectionData', (data) => self.log('debug', 'Conn Data ' + JSON.stringify(data)))
 		self.dev.emitter.on('connectionStatus', (data) => {
 			self.log('debug', 'Conn Status ' + JSON.stringify(data))
@@ -266,37 +227,15 @@ class SamsungDisplayInstance extends InstanceBase {
 						this.setVariableValues(self.DATA)
 						// TODO(Peter): Could potentially be slightly more efficient here
 						this.checkFeedbacks('input')
-						this.checkFeedbacks('mute')
+						/*this.checkFeedbacks('mute')
 						this.checkFeedbacks('volume')
 						this.checkFeedbacks('power')
 						this.checkFeedbacks('contrast')
 						this.checkFeedbacks('brightness')
 						this.checkFeedbacks('sharpness')
 						this.checkFeedbacks('saturation')
-						this.checkFeedbacks('tint')
-						this.checkFeedbacks('wall')
-						this.checkFeedbacks('wallMode')
-						this.checkFeedbacks('wallScreenNumber')
+						this.checkFeedbacks('tint')*/
 
-						// Sernum, screensize and possibly others only work when the device is powered on...
-						if (data.req == 'status' && self.DATA['power'] == 'on') {
-							// TODO(Peter): || data.req == 'power' - Need to sleep if we've only just powered on...
-							self.dev.process(
-								'model?',
-								'screensize?',
-								'sernum?',
-								'software?',
-								'contrast?',
-								'brightness?',
-								'sharpness?',
-								'saturation?',
-								'tint?',
-								'fanspeed?',
-								'wallmode?',
-								'wallon?',
-								'walldef?',
-							)
-						}
 						break
 					default:
 						self.updateStatus(InstanceStatus.UnknownWarning, 'Request ' + data.req + ' failed')
@@ -306,9 +245,12 @@ class SamsungDisplayInstance extends InstanceBase {
 			}
 		})
 
+		// Force a connect for now
+		self.dev.process('#connect')
+
 		// We use lots of the statuses and expose the others as variables
 		// It's also generally useful to trigger a connectionStatus message
-		self.dev.process('status?')
+		//self.dev.process('status?')
 	}
 
 	// Return config fields for web config
@@ -326,21 +268,8 @@ class SamsungDisplayInstance extends InstanceBase {
 				id: 'port',
 				label: 'Target Port',
 				width: 6,
-				default: '1515',
+				default: '11923',
 				regex: Regex.PORT,
-			},
-			{
-				type: 'number',
-				id: 'id',
-				label: 'Target ID',
-				tooltip:
-					"This is the configured ID of this device, 0-253 (254 will broadcast to any ID but there won't be any feedback)",
-				width: 6,
-				// Zero seems to be the default ID out of the box
-				default: 0,
-				min: 0,
-				max: 254,
-				regex: Regex.Number,
 			},
 		]
 	}
@@ -359,11 +288,6 @@ class SamsungDisplayInstance extends InstanceBase {
 		var variableDefinitions = []
 
 		variableDefinitions.push({
-			name: 'Power',
-			variableId: 'power',
-		})
-
-		variableDefinitions.push({
 			name: 'Volume',
 			variableId: 'volume',
 		})
@@ -376,26 +300,6 @@ class SamsungDisplayInstance extends InstanceBase {
 		variableDefinitions.push({
 			name: 'Input',
 			variableId: 'input',
-		})
-
-		variableDefinitions.push({
-			name: 'Model',
-			variableId: 'model',
-		})
-
-		variableDefinitions.push({
-			name: 'Screen Size',
-			variableId: 'screenSize',
-		})
-
-		variableDefinitions.push({
-			name: 'Software',
-			variableId: 'software',
-		})
-
-		variableDefinitions.push({
-			name: 'Serial Number',
-			variableId: 'sernum',
 		})
 
 		variableDefinitions.push({
@@ -423,28 +327,7 @@ class SamsungDisplayInstance extends InstanceBase {
 			variableId: 'tint',
 		})
 
-		variableDefinitions.push({
-			name: 'Fan Speed',
-			variableId: 'fanspeed',
-		})
-
-		variableDefinitions.push({
-			name: 'Wall Mode',
-			variableId: 'wallMode',
-		})
-
-		variableDefinitions.push({
-			name: 'Wall Status',
-			variableId: 'wallOn',
-		})
-
-		variableDefinitions.push({
-			name: 'Wall Monitor Number',
-			variableId: 'Wall_SNo',
-		})
-
 		// TODO(Peter): Add and expose other variables
-		// "aspect":1,"NTimeNF":0,"FTimeNF":0,"Wall_Div":"off","Wall_SNo":0
 
 		this.setVariableDefinitions(variableDefinitions)
 	}
@@ -452,27 +335,6 @@ class SamsungDisplayInstance extends InstanceBase {
 	init_feedbacks() {
 		// feedbacks
 		var feedbacks = []
-
-		feedbacks['power'] = {
-			type: 'boolean',
-			name: 'Power',
-			description: 'If the power is in the specified state, give feedback',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Power',
-					id: 'state',
-					choices: this.CHOICES_POWER,
-				},
-			],
-			defaultStyle: {
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(255, 255, 0),
-			},
-			callback: (feedback, bank) => {
-				return this.DATA.power == feedback.options.state
-			},
-		}
 
 		feedbacks['input'] = {
 			type: 'boolean',
@@ -492,27 +354,6 @@ class SamsungDisplayInstance extends InstanceBase {
 			},
 			callback: (feedback, bank) => {
 				return this.DATA.input == feedback.options.input_name
-			},
-		}
-
-		feedbacks['mute'] = {
-			type: 'boolean',
-			name: 'Mute',
-			description: 'If the system is in the current mute state, give feedback',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Mute',
-					id: 'state',
-					choices: this.CHOICES_MUTE,
-				},
-			],
-			defaultStyle: {
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(255, 255, 0),
-			},
-			callback: (feedback, bank) => {
-				return this.DATA.mute == feedback.options.state
 			},
 		}
 
@@ -666,122 +507,11 @@ class SamsungDisplayInstance extends InstanceBase {
 			},
 		}
 
-		feedbacks['wall'] = {
-			type: 'boolean',
-			name: 'Wall',
-			description: 'If the system is in the current wall state, give feedback',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Wall',
-					id: 'state',
-					choices: this.CHOICES_WALL,
-				},
-			],
-			defaultStyle: {
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(255, 255, 0),
-			},
-			callback: (feedback, bank) => {
-				return this.DATA.wallOn == feedback.options.state
-			},
-		}
-
-		feedbacks['wallMode'] = {
-			type: 'boolean',
-			name: 'Wall Mode',
-			description: 'If the wall mode is the current state, give feedback',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Mode',
-					id: 'mode',
-					choices: this.CHOICES_WALL_MODE,
-				},
-			],
-			defaultStyle: {
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(255, 255, 0),
-			},
-			callback: (feedback, bank) => {
-				return this.DATA.wallMode == feedback.options.mode
-			},
-		}
-
-		feedbacks['wallScreenNumber'] = {
-			type: 'boolean',
-			name: 'Wall Screen Number',
-			description: 'If the wall screen number is the selected wall screen number, give feedback',
-			options: [
-				{
-					type: 'number',
-					label: 'Screen Number',
-					id: 'screenNumber',
-					default: 1,
-					min: 0,
-					max: 100,
-					required: true,
-					step: 1,
-				},
-			],
-			defaultStyle: {
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(255, 255, 0),
-			},
-			callback: (feedback, bank) => {
-				return this.DATA.Wall_SNo == parseInt(feedback.options.screenNumber)
-			},
-		}
-
 		this.setFeedbackDefinitions(feedbacks)
 	}
 
 	init_presets() {
 		let presets = []
-		presets.push({
-			category: 'Basics',
-			name: 'Power on',
-			type: 'button',
-			style: {
-				text: `Power On`,
-				size: '14',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [{ down: [{ actionId: 'powerOn' }] }],
-			feedbacks: [
-				{
-					feedbackId: 'power',
-					style: {
-						bgcolor: combineRgb(255, 255, 0),
-						color: combineRgb(0, 0, 0),
-					},
-					options: { state: 'on' },
-				},
-			],
-		})
-		presets.push({
-			category: 'Basics',
-			name: 'Power off',
-			type: 'button',
-			style: {
-				text: `Power Off`,
-				size: '14',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [{ down: [{ actionId: 'powerOff' }] }],
-			feedbacks: [
-				{
-					feedbackId: 'power',
-					style: {
-						bgcolor: combineRgb(255, 255, 0),
-						color: combineRgb(0, 0, 0),
-					},
-					options: { state: 'off' },
-				},
-			],
-		})
 
 		for (var type in this.PRESETS_SETTINGS) {
 			for (var choice in this.PRESETS_SETTINGS[type].choices) {
@@ -827,20 +557,6 @@ class SamsungDisplayInstance extends InstanceBase {
 
 	actions(system) {
 		system.setActionDefinitions({
-			powerOn: {
-				name: 'Power On Display',
-				options: [],
-				callback: async (action) => {
-					await system.doAction('power on')
-				},
-			},
-			powerOff: {
-				name: 'Power Off Display',
-				options: [],
-				callback: async (action) => {
-					await system.doAction('power off')
-				},
-			},
 			input: {
 				name: 'Input',
 				options: [
@@ -849,26 +565,11 @@ class SamsungDisplayInstance extends InstanceBase {
 						label: 'Input',
 						id: 'input_name',
 						choices: system.CHOICES_INPUT,
-						//default: 'HDMI1-PC',
+						//default: 'SDI1',
 					},
 				],
 				callback: async (action) => {
-					await system.doAction('input ' + action.options.input_name)
-				},
-			},
-			mute: {
-				name: 'Mute',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Mute',
-						id: 'state',
-						choices: system.CHOICES_MUTE,
-						default: 'off',
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('mute ' + action.options.state)
+					await system.doAction('input ' + action.options.input_name + ',val1a,val2a')
 				},
 			},
 			volume: {
@@ -979,51 +680,6 @@ class SamsungDisplayInstance extends InstanceBase {
 					await system.doAction('tint ' + action.options.tint)
 				},
 			},
-			wall: {
-				name: 'Wall',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Wall',
-						id: 'state',
-						choices: system.CHOICES_WALL,
-						default: 'off',
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('wallOn ' + action.options.state)
-				},
-			},
-			wallMode: {
-				name: 'Wall Mode',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Mode',
-						id: 'mode',
-						choices: system.CHOICES_WALL_MODE,
-						default: 'natural',
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('wallMode ' + action.options.mode)
-				},
-			},
-			wallMode: {
-				name: 'Wall Mode',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Mode',
-						id: 'mode',
-						choices: system.CHOICES_WALL_MODE,
-						default: 'natural',
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('wallMode ' + action.options.mode)
-				},
-			},
 			customCommand: {
 				name: 'Custom Command',
 				options: [
@@ -1051,9 +707,9 @@ class SamsungDisplayInstance extends InstanceBase {
 			// This is using parts of the library that aren't publicly exposed and may change
 			if (
 				this.dev !== undefined &&
-				this.dev.mode == 'tcp' &&
-				this.dev.socket !== undefined &&
-				this.dev.socket.readyState === 'open'
+				this.dev.mode == 'udp' &&
+				this.dev.socket !== undefined
+				// && this.dev.socket.readyState === 'open'
 			) {
 				this.dev.process(cmd)
 			} else {
@@ -1063,4 +719,4 @@ class SamsungDisplayInstance extends InstanceBase {
 		}
 	}
 }
-runEntrypoint(SamsungDisplayInstance, UpgradeScripts)
+runEntrypoint(LilliputMonitorInstance, UpgradeScripts)

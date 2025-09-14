@@ -1,26 +1,25 @@
 {
-	"id": "samsung-display",
-	"name": "samsung-display",
+	"id": "lilliput-monitor",
+	"name": "lilliput-monitor",
 	"legacyIds": [],
 	"version": "0.0.0",
-	"description": "Samsung Display",
+	"description": "Lilliput Monitor",
 	"runtime": {
 		"type": "node18",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../index.js"
 	},
-	"keywords": ["Samsung", "Display", "MDC"],
-	"manufacturer": "Samsung",
-	"products": ["MD Display"],
-	"shortname": "Samsung Display",
-	"repository": "git+https://github.com/bitfocus/companion-module-samsung-display.git",
+	"keywords": ["Lilliput", "Monitor"],
+	"manufacturer": "Lilliput",
+	"products": ["Monitor"],
+	"shortname": "Lilliput Monitor",
+	"repository": "git+https://github.com/bitfocus/companion-module-lilliput-monitor.git",
 	"maintainers": [
 		{
-			"name": "Jeffrey Davidsz",
-			"email": "jeffrey.davidsz@vicreo.eu"
+			"name": "Peter Newman"
 		}
 	],
 	"license": "MIT",
-	"bugs": "https://github.com/bitfocus/companion-module-samsung-display/issues"
+	"bugs": "https://github.com/bitfocus/companion-module-lilliput-monitor/issues"
 }
