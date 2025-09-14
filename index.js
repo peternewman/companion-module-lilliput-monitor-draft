@@ -268,7 +268,7 @@ class LilliputMonitorInstance extends InstanceBase {
 				id: 'port',
 				label: 'Target Port',
 				width: 6,
-				default: '11923',
+				default: '19523',
 				regex: Regex.PORT,
 			},
 		]
