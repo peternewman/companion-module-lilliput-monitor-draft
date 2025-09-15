@@ -81,6 +81,10 @@ class LilliputMonitorInstance extends InstanceBase {
 
 		this.CHOICES_INPUT_MULTIVIEWER = this.generateChoices(commands, 'input', 'mv1-2')
 
+		this.CHOICES_AUDIO_METER = this.generateChoices(commands, 'audio', 'meter')
+
+		this.CHOICES_AUDIO_OUTPUT = this.generateChoices(commands, 'audio', 'right-left-out')
+
 		this.PRESETS_SETTINGS = [
 			{
 				action: 'input',
@@ -89,17 +93,18 @@ class LilliputMonitorInstance extends InstanceBase {
 				label: '',
 				choices: this.CHOICES_INPUT,
 				category: 'Input',
+				additionalOptions: { mv1_2: 'SDI1-SDI2', mv3_4: 'SDI3-SDI4' },
 			},
-
-			/*{
-				action: 'volume',
+			{
+				action: 'audio',
 				setting: 'volume',
 				feedback: 'volume',
 				label: 'Volume ',
 				choices: this.CHOICES_VOLUME,
-				category: 'Volume',
+				category: 'Audio',
+				additionalOptions: { meter: 'None', output: '2-1' },
 			},
-			{
+			/*{
 				action: 'contrast',
 				setting: 'contrast',
 				feedback: 'contrast',
@@ -228,8 +233,8 @@ class LilliputMonitorInstance extends InstanceBase {
 						// TODO(Peter): Could potentially be slightly more efficient here
 						this.setVariableValues(self.DATA)
 						// TODO(Peter): Could potentially be slightly more efficient here
-						this.checkFeedbacks('input')
-						/*this.checkFeedbacks('mute')
+						/*this.checkFeedbacks('input')
+						this.checkFeedbacks('mute')
 						this.checkFeedbacks('volume')
 						this.checkFeedbacks('power')
 						this.checkFeedbacks('contrast')
@@ -289,7 +294,7 @@ class LilliputMonitorInstance extends InstanceBase {
 	init_variables() {
 		var variableDefinitions = []
 
-		variableDefinitions.push({
+		/*variableDefinitions.push({
 			name: 'Volume',
 			variableId: 'volume',
 		})
@@ -327,7 +332,7 @@ class LilliputMonitorInstance extends InstanceBase {
 		variableDefinitions.push({
 			name: 'Tint',
 			variableId: 'tint',
-		})
+		})*/
 
 		// TODO(Peter): Add and expose other variables
 
@@ -338,7 +343,7 @@ class LilliputMonitorInstance extends InstanceBase {
 		// feedbacks
 		var feedbacks = []
 
-		feedbacks['input'] = {
+		/*feedbacks['input'] = {
 			type: 'boolean',
 			name: 'Input',
 			description: 'If the input specified is the current input, give feedback',
@@ -507,7 +512,7 @@ class LilliputMonitorInstance extends InstanceBase {
 			callback: (feedback, bank) => {
 				return this.DATA.tint == parseInt(feedback.options.tint)
 			},
-		}
+		}*/
 
 		this.setFeedbackDefinitions(feedbacks)
 	}
@@ -518,7 +523,13 @@ class LilliputMonitorInstance extends InstanceBase {
 		for (var type in this.PRESETS_SETTINGS) {
 			for (var choice in this.PRESETS_SETTINGS[type].choices) {
 				var optionData = {}
+				if (this.PRESETS_SETTINGS[type].additionalOptions !== undefined) {
+					for (var opt in this.PRESETS_SETTINGS[type].additionalOptions) {
+						optionData[opt] = this.PRESETS_SETTINGS[type].additionalOptions[opt]
+					}
+				}
 				optionData[this.PRESETS_SETTINGS[type].setting] = this.PRESETS_SETTINGS[type].choices[choice].id
+
 				presets[`${this.PRESETS_SETTINGS[type].action}_${this.PRESETS_SETTINGS[type].choices[choice].id}`] = {
 					category: this.PRESETS_SETTINGS[type].category,
 					name: this.PRESETS_SETTINGS[type].label + this.PRESETS_SETTINGS[type].choices[choice].label,
@@ -529,7 +540,7 @@ class LilliputMonitorInstance extends InstanceBase {
 						color: combineRgb(255, 255, 255),
 						bgcolor: combineRgb(0, 0, 0),
 					},
-					feedbacks: [
+					/*feedbacks: [
 						{
 							feedbackId: this.PRESETS_SETTINGS[type].feedback,
 							style: {
@@ -538,7 +549,7 @@ class LilliputMonitorInstance extends InstanceBase {
 							},
 							options: optionData,
 						},
-					],
+					],*/
 					steps: [
 						{
 							down: [
@@ -585,11 +596,13 @@ class LilliputMonitorInstance extends InstanceBase {
 					},
 				],
 				callback: async (action) => {
-					await system.doAction('input ' + action.options.input_name + ',' + action.options.mv1_2 + ',' + action.options.mv3_4)
+					await system.doAction(
+						'input ' + action.options.input_name + ',' + action.options.mv1_2 + ',' + action.options.mv3_4,
+					)
 				},
 			},
-			/*volume: {
-				name: 'Volume',
+			audio: {
+				name: 'Audio',
 				options: [
 					{
 						type: 'number',
@@ -601,12 +614,28 @@ class LilliputMonitorInstance extends InstanceBase {
 						required: true,
 						step: 1,
 					},
+					{
+						type: 'dropdown',
+						label: 'Meter',
+						id: 'meter',
+						choices: system.CHOICES_AUDIO_METER,
+						default: system.CHOICES_AUDIO_METER.length > 0 ? system.CHOICES_AUDIO_METER[0].id : '',
+					},
+					{
+						type: 'dropdown',
+						label: 'Output (Right, Left)',
+						id: 'output',
+						choices: system.CHOICES_AUDIO_OUTPUT,
+						default: system.CHOICES_AUDIO_OUTPUT.length > 0 ? system.CHOICES_AUDIO_OUTPUT[0].id : '',
+					},
 				],
 				callback: async (action) => {
-					await system.doAction('volume ' + action.options.volume)
+					await system.doAction(
+						'audio ' + action.options.volume + ',' + action.options.meter + ',' + action.options.output,
+					)
 				},
 			},
-			contrast: {
+			/*contrast: {
 				name: 'Contrast',
 				options: [
 					{
