@@ -85,6 +85,8 @@ class LilliputMonitorInstance extends InstanceBase {
 
 		this.CHOICES_AUDIO_OUTPUT = this.generateChoices(commands, 'audio', 'right-left-out')
 
+		this.CHOICES_UMD_TALLY = this.generateChoices(commands, 'umd', 'tally')
+
 		this.PRESETS_SETTINGS = [
 			{
 				action: 'input',
@@ -103,6 +105,14 @@ class LilliputMonitorInstance extends InstanceBase {
 				choices: this.CHOICES_VOLUME,
 				category: 'Audio',
 				additionalOptions: { meter: 'None', output: '2-1' },
+			},
+			{
+				action: 'umd',
+				setting: 'tally',
+				feedback: 'tally',
+				label: 'Tally ',
+				choices: this.CHOICES_UMD_TALLY,
+				category: 'UMD',
 			},
 			/*{
 				action: 'contrast',
@@ -633,6 +643,49 @@ class LilliputMonitorInstance extends InstanceBase {
 					await system.doAction(
 						'audio ' + action.options.volume + ',' + action.options.meter + ',' + action.options.output,
 					)
+				},
+			},
+			umd: {
+				name: 'UMD',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Tally Color',
+						id: 'tally',
+						choices: system.CHOICES_UMD_TALLY,
+						default: system.CHOICES_UMD_TALLY.length > 0 ? system.CHOICES_UMD_TALLY[0].id : '',
+					},
+					{
+						type: 'textinput',
+						label: 'Text',
+						id: 'text',
+					},
+					/*{
+						type: 'dropdown',
+						label: 'Meter',
+						id: 'meter',
+						choices: system.CHOICES_AUDIO_METER,
+						default: system.CHOICES_AUDIO_METER.length > 0 ? system.CHOICES_AUDIO_METER[0].id : '',
+					},
+					{
+						type: 'dropdown',
+						label: 'Output (Right, Left)',
+						id: 'output',
+						choices: system.CHOICES_AUDIO_OUTPUT,
+						default: system.CHOICES_AUDIO_OUTPUT.length > 0 ? system.CHOICES_AUDIO_OUTPUT[0].id : '',
+					},*/
+				],
+				callback: async (action) => {
+					var text = action.options.text
+					var encodedText = ''
+					for (var i = 0; i < 16; i++) {
+						if (i < text.length) {
+							encodedText += ',0x' + text.charCodeAt(i).toString(16)
+						} else {
+							encodedText += ',0x20'
+						}
+					}
+					await system.doAction('umd ' + action.options.tally + encodedText + ',val1a,val2a')
 				},
 			},
 			/*contrast: {
