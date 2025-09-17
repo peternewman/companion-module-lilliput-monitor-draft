@@ -151,6 +151,16 @@ class LilliputMonitorInstance extends InstanceBase {
 			delete this.socket
 		}
 
+		if (this.udp !== undefined) {
+			try {
+				this.udp.close()
+			} catch (error) {
+				this.log('error', 'Error closing UDP port')
+			} finally {
+				delete this.udp
+			}
+		}
+
 		this.init_udp()
 	}
 
@@ -166,7 +176,10 @@ class LilliputMonitorInstance extends InstanceBase {
 			self.updateStatus(InstanceStatus.BadConfig, `IP address is missing`)
 			return
 		} else if (!self.config.port) {
-			self.updateStatus(InstanceStatus.BadConfig, `Port is missing`)
+			self.updateStatus(InstanceStatus.BadConfig, `Target port is missing`)
+			return
+		} else if (!self.config.listen_port) {
+			self.updateStatus(InstanceStatus.BadConfig, `Listen port is missing`)
 			return
 		}
 
@@ -206,48 +219,62 @@ class LilliputMonitorInstance extends InstanceBase {
 		self.dev.emitter.on('commandForDevice', (data) => self.log('debug', 'Tx: ' + JSON.stringify(data)))
 		self.dev.emitter.on('responseFromDevice', (data) => {
 			self.log('debug', 'Rx: ' + JSON.stringify(data))
-			if (data.status !== undefined && data.status != '') {
-				switch (data.status) {
-					case 'OK':
-						// TODO(Peter): Deduplicate this
-						self.updateStatus(InstanceStatus.Ok)
-						// Handle updated data
-						if (typeof data.value === 'object' || Array.isArray(data.value)) {
-							for (var k in data.value) {
-								self.DATA[k] = data.value[k]
-							}
-						} else {
-							self.DATA[data.req] = data.value
-						}
-						self.log('debug', 'Overall data: ' + JSON.stringify(self.DATA))
-						// TODO(Peter): Could potentially be slightly more efficient here
-						this.setVariableValues(self.DATA)
-						// TODO(Peter): Could potentially be slightly more efficient here
-						/*this.checkFeedbacks('source')
-						this.checkFeedbacks('mute')
-						this.checkFeedbacks('volume')
-						this.checkFeedbacks('power')
-						this.checkFeedbacks('contrast')
-						this.checkFeedbacks('brightness')
-						this.checkFeedbacks('sharpness')
-						this.checkFeedbacks('saturation')
-						this.checkFeedbacks('tint')*/
-
-						break
-					default:
-						self.updateStatus(InstanceStatus.UnknownWarning, 'Request ' + data.req + ' failed')
+			// TODO(Peter): Deduplicate this
+			self.updateStatus(InstanceStatus.Ok)
+			// Handle updated data
+			if (typeof data.value === 'object' || Array.isArray(data.value)) {
+				for (var k in data.value) {
+					self.DATA[k] = data.value[k]
 				}
 			} else {
-				self.updateStatus(InstanceStatus.UnknownWarning, 'Unknown comms error')
+				self.DATA[data.req] = data.value
 			}
+			self.log('debug', 'Overall data: ' + JSON.stringify(self.DATA))
+			this.setVariableValues(self.DATA)
+			this.checkFeedbacks('source')
+			this.checkFeedbacks('volume')
+			this.checkFeedbacks('brightness')
+			this.checkFeedbacks('contrast')
+			this.checkFeedbacks('saturation')
+			this.checkFeedbacks('tint')
+			this.checkFeedbacks('sharpness')
+			this.checkFeedbacks('backlight')
+			this.checkFeedbacks('color-temp')
 		})
 
 		// Force a connect for now
 		self.dev.process('#connect')
 
+		self.log('debug', 'Binding to UDP port ' + self.config.listen_port)
+		try {
+			self.udp = self.createSharedUdpSocket('udp4', (msg, rinfo) => self.checkMessage(self, msg, rinfo))
+			self.udp.bind(self.config.listen_port)
+
+			self.udp.on('error', function (err) {
+				self.updateStatus(InstanceStatus.ConnectionFailure, 'Network error: ' + err.message)
+				self.log('error', 'Network error: ' + err.message)
+			})
+		} catch (error) {
+			self.log('error', 'Error binding UDP Port: ' + error)
+		}
+
 		// We use lots of the statuses and expose the others as variables
 		// It's also generally useful to trigger a connectionStatus message
-		//self.dev.process('status?')
+		self.dev.process('status?')
+	}
+
+	checkMessage(self, msg, rinfo) {
+		try {
+			if (rinfo.address == self.config.host) {
+				self.log('debug', 'Got UDP message: ' + Buffer.from(msg).toString('hex'))
+				self.dev.decode(msg)
+			} else {
+				//if the remote address isn't our configured host, it's just some other monitor
+				self.log('info', `Ignoring UDP message from unknown source: ${rinfo.address}:${rinfo.port}`)
+			}
+		} catch (err) {
+			self.log('error', `UDP error: ${err.message}`)
+		}
 	}
 
 	// Return config fields for web config
@@ -268,6 +295,14 @@ class LilliputMonitorInstance extends InstanceBase {
 				default: '19523',
 				regex: Regex.PORT,
 			},
+			{
+				type: 'textinput',
+				id: 'listen_port',
+				label: 'Listen Port',
+				width: 6,
+				default: '19522',
+				regex: Regex.PORT,
+			},
 		]
 	}
 
@@ -278,30 +313,30 @@ class LilliputMonitorInstance extends InstanceBase {
 			delete this.dev
 		}
 
+		if (this.udp !== undefined) {
+			try {
+				this.udp.close()
+			} catch (error) {
+				debug('Error closing UDP port')
+			} finally {
+				delete this.udp
+			}
+		}
+
 		this.log('debug', 'destroy ' + this.id)
 	}
 
 	init_variables() {
 		var variableDefinitions = []
 
-		/*variableDefinitions.push({
-			name: 'Volume',
-			variableId: 'volume',
-		})
-
-		variableDefinitions.push({
-			name: 'Mute',
-			variableId: 'mute',
-		})
-
 		variableDefinitions.push({
 			name: 'Source',
-			variableId: 'Source',
+			variableId: 'source',
 		})
 
 		variableDefinitions.push({
-			name: 'Contrast',
-			variableId: 'contrast',
+			name: 'Volume',
+			variableId: 'volume',
 		})
 
 		variableDefinitions.push({
@@ -310,8 +345,8 @@ class LilliputMonitorInstance extends InstanceBase {
 		})
 
 		variableDefinitions.push({
-			name: 'Sharpness',
-			variableId: 'sharpness',
+			name: 'Contrast',
+			variableId: 'contrast',
 		})
 
 		variableDefinitions.push({
@@ -322,7 +357,22 @@ class LilliputMonitorInstance extends InstanceBase {
 		variableDefinitions.push({
 			name: 'Tint',
 			variableId: 'tint',
-		})*/
+		})
+
+		variableDefinitions.push({
+			name: 'Sharpness',
+			variableId: 'sharpness',
+		})
+
+		variableDefinitions.push({
+			name: 'Backlight',
+			variableId: 'backlight',
+		})
+
+		variableDefinitions.push({
+			name: 'Color Temperature',
+			variableId: 'color-temp',
+		})
 
 		// TODO(Peter): Add and expose other variables
 
@@ -333,7 +383,7 @@ class LilliputMonitorInstance extends InstanceBase {
 		// feedbacks
 		var feedbacks = []
 
-		/*feedbacks['source'] = {
+		feedbacks['source'] = {
 			type: 'boolean',
 			name: 'Source',
 			description: 'If the source specified is the current source, give feedback',
@@ -502,7 +552,32 @@ class LilliputMonitorInstance extends InstanceBase {
 			callback: (feedback, bank) => {
 				return this.DATA.tint == parseInt(feedback.options.tint)
 			},
-		}*/
+		}
+
+		feedbacks['backlight'] = {
+			type: 'boolean',
+			name: 'Backlight',
+			description: 'If the system backlight is at the selected level, give feedback',
+			options: [
+				{
+					type: 'number',
+					label: 'Backlight',
+					id: 'backlight',
+					default: 50,
+					min: 0,
+					max: 100,
+					required: true,
+					step: 1,
+				},
+			],
+			defaultStyle: {
+				color: combineRgb(0, 0, 0),
+				bgcolor: combineRgb(255, 255, 0),
+			},
+			callback: (feedback, bank) => {
+				return this.DATA.backlight == parseInt(feedback.options.backlight)
+			},
+		}
 
 		this.setFeedbackDefinitions(feedbacks)
 	}
@@ -530,7 +605,7 @@ class LilliputMonitorInstance extends InstanceBase {
 						color: combineRgb(255, 255, 255),
 						bgcolor: combineRgb(0, 0, 0),
 					},
-					/*feedbacks: [
+					feedbacks: [
 						{
 							feedbackId: this.PRESETS_SETTINGS[type].feedback,
 							style: {
@@ -539,7 +614,7 @@ class LilliputMonitorInstance extends InstanceBase {
 							},
 							options: optionData,
 						},
-					],*/
+					],
 					steps: [
 						{
 							down: [
