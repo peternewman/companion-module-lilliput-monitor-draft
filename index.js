@@ -75,11 +75,11 @@ class LilliputMonitorInstance extends InstanceBase {
 		const commands = this.processLilliputDData(tmpdev.data)
 		//this.log('debug', 'Processed LilliputD data ' + JSON.stringify(commands))
 
-		//this.log('debug', 'LilliputD input input ' + JSON.stringify(this.generateChoices(commands, 'input', 'input')))
+		//this.log('debug', 'LilliputD source input ' + JSON.stringify(this.generateChoices(commands, 'source', 'source')))
 
-		this.CHOICES_INPUT = this.generateChoices(commands, 'input', 'input')
+		this.CHOICES_SOURCE = this.generateChoices(commands, 'source', 'source')
 
-		this.CHOICES_INPUT_MULTIVIEWER = this.generateChoices(commands, 'input', 'mv1-2')
+		this.CHOICES_SOURCE_MULTIVIEWER = this.generateChoices(commands, 'source', 'mv1-2')
 
 		this.CHOICES_AUDIO_METER = this.generateChoices(commands, 'audio', 'meter')
 
@@ -89,12 +89,12 @@ class LilliputMonitorInstance extends InstanceBase {
 
 		this.PRESETS_SETTINGS = [
 			{
-				action: 'input',
-				setting: 'input_name',
-				feedback: 'input',
+				action: 'source',
+				setting: 'source_name',
+				feedback: 'source',
 				label: '',
-				choices: this.CHOICES_INPUT,
-				category: 'Input',
+				choices: this.CHOICES_SOURCE,
+				category: 'Source',
 				additionalOptions: { mv1_2: 'SDI1-SDI2', mv3_4: 'SDI3-SDI4' },
 			},
 			{
@@ -243,7 +243,7 @@ class LilliputMonitorInstance extends InstanceBase {
 						// TODO(Peter): Could potentially be slightly more efficient here
 						this.setVariableValues(self.DATA)
 						// TODO(Peter): Could potentially be slightly more efficient here
-						/*this.checkFeedbacks('input')
+						/*this.checkFeedbacks('source')
 						this.checkFeedbacks('mute')
 						this.checkFeedbacks('volume')
 						this.checkFeedbacks('power')
@@ -315,8 +315,8 @@ class LilliputMonitorInstance extends InstanceBase {
 		})
 
 		variableDefinitions.push({
-			name: 'Input',
-			variableId: 'input',
+			name: 'Source',
+			variableId: 'Source',
 		})
 
 		variableDefinitions.push({
@@ -353,16 +353,16 @@ class LilliputMonitorInstance extends InstanceBase {
 		// feedbacks
 		var feedbacks = []
 
-		/*feedbacks['input'] = {
+		/*feedbacks['source'] = {
 			type: 'boolean',
-			name: 'Input',
-			description: 'If the input specified is the current input, give feedback',
+			name: 'Source',
+			description: 'If the source specified is the current source, give feedback',
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Input',
-					id: 'input_name',
-					choices: this.CHOICES_INPUT,
+					label: 'source',
+					id: 'source_name',
+					choices: this.CHOICES_SOURCE,
 				},
 			],
 			defaultStyle: {
@@ -370,7 +370,7 @@ class LilliputMonitorInstance extends InstanceBase {
 				bgcolor: combineRgb(255, 255, 0),
 			},
 			callback: (feedback, bank) => {
-				return this.DATA.input == feedback.options.input_name
+				return this.DATA.source == feedback.options.source_name
 			},
 		}
 
@@ -580,34 +580,34 @@ class LilliputMonitorInstance extends InstanceBase {
 
 	actions(system) {
 		system.setActionDefinitions({
-			input: {
-				name: 'Input',
+			source: {
+				name: 'Source',
 				options: [
 					{
 						type: 'dropdown',
-						label: 'Input',
-						id: 'input_name',
-						choices: system.CHOICES_INPUT,
-						default: system.CHOICES_INPUT.length > 0 ? system.CHOICES_INPUT[0].id : '',
+						label: 'Source',
+						id: 'source_name',
+						choices: system.CHOICES_SOURCE,
+						default: system.CHOICES_SOURCE.length > 0 ? system.CHOICES_SOURCE[0].id : '',
 					},
 					{
 						type: 'dropdown',
 						label: 'MV1-2',
 						id: 'mv1_2',
-						choices: system.CHOICES_INPUT_MULTIVIEWER,
-						default: system.CHOICES_INPUT_MULTIVIEWER.length > 0 ? system.CHOICES_INPUT_MULTIVIEWER[0].id : '',
+						choices: system.CHOICES_SOURCE_MULTIVIEWER,
+						default: system.CHOICES_SOURC_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
 					},
 					{
 						type: 'dropdown',
 						label: 'MV3-4',
 						id: 'mv3_4',
-						choices: system.CHOICES_INPUT_MULTIVIEWER,
-						default: system.CHOICES_INPUT_MULTIVIEWER.length > 0 ? system.CHOICES_INPUT_MULTIVIEWER[0].id : '',
+						choices: system.CHOICES_SOURCE_MULTIVIEWER,
+						default: system.CHOICES_SOURC_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
 					},
 				],
 				callback: async (action) => {
 					await system.doAction(
-						'input ' + action.options.input_name + ',' + action.options.mv1_2 + ',' + action.options.mv3_4,
+						'source ' + action.options.source_name + ',' + action.options.mv1_2 + ',' + action.options.mv3_4,
 					)
 				},
 			},
