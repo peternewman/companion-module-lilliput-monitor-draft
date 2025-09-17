@@ -761,7 +761,7 @@ kind-of@^6.0.2:
 
 "lilliput-monitor@github:peternewman/lilliput-monitor":
   version "0.0.1"
-  resolved "https://codeload.github.com/peternewman/lilliput-monitor/tar.gz/518070400cf6678e670cec20bbed365d4a0d1aa0"
+  resolved "https://codeload.github.com/peternewman/lilliput-monitor/tar.gz/faa20009586fe710490629e0a19cd7b20df953a3"
   dependencies:
     raw-device "github:peternewman/raw-device#udp"
     xml2js "^0.4.23"

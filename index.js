@@ -63,11 +63,12 @@ class LilliputMonitorInstance extends InstanceBase {
 		]
 
 		this.CHOICES_VOLUME = this.CHOICES_0_100
-		this.CHOICES_CONTRAST = this.CHOICES_0_100
 		this.CHOICES_BRIGHTNESS = this.CHOICES_0_100
-		this.CHOICES_SHARPNESS = this.CHOICES_0_100
+		this.CHOICES_CONTRAST = this.CHOICES_0_100
 		this.CHOICES_SATURATION = this.CHOICES_0_100
 		this.CHOICES_TINT = this.CHOICES_0_100
+		this.CHOICES_SHARPNESS = this.CHOICES_0_100
+		this.CHOICES_BACKLIGHT = this.CHOICES_0_100
 
 		var tunnel = new PassThrough()
 		var tmpdev = new LilliputD({ stream: tunnel }, { disconnect: true })
@@ -84,6 +85,8 @@ class LilliputMonitorInstance extends InstanceBase {
 		this.CHOICES_AUDIO_METER = this.generateChoices(commands, 'audio', 'meter')
 
 		this.CHOICES_AUDIO_OUTPUT = this.generateChoices(commands, 'audio', 'right-left-out')
+
+		this.CHOICES_PICTURE_COLOR_TEMP = this.generateChoices(commands, 'picture', 'color-temp')
 
 		this.CHOICES_UMD_TALLY = this.generateChoices(commands, 'umd', 'tally')
 
@@ -107,53 +110,30 @@ class LilliputMonitorInstance extends InstanceBase {
 				additionalOptions: { meter: 'None', output: '2-1' },
 			},
 			{
+				action: 'picture',
+				setting: 'backlight',
+				feedback: 'backlight',
+				label: 'Backlight ',
+				choices: this.CHOICES_BACKLIGHT,
+				category: 'Picture',
+				additionalOptions: {
+					brightness: 50,
+					contrast: 50,
+					saturation: 50,
+					tint: 50,
+					sharpness: 50,
+					color_temp: '6500K',
+				},
+			},
+			{
 				action: 'umd',
 				setting: 'tally',
 				feedback: 'tally',
 				label: 'Tally ',
 				choices: this.CHOICES_UMD_TALLY,
 				category: 'UMD',
+				additionalOptions: { text: '' },
 			},
-			/*{
-				action: 'contrast',
-				setting: 'contrast',
-				feedback: 'contrast',
-				label: 'Contrast ',
-				choices: this.CHOICES_CONTRAST,
-				category: 'Picture',
-			},
-			{
-				action: 'brightness',
-				setting: 'brightness',
-				feedback: 'brightness',
-				label: 'Brightness ',
-				choices: this.CHOICES_BRIGHTNESS,
-				category: 'Picture',
-			},
-			{
-				action: 'sharpness',
-				setting: 'sharpness',
-				feedback: 'sharpness',
-				label: 'Sharpness ',
-				choices: this.CHOICES_SHARPNESSS,
-				category: 'Picture',
-			},
-			{
-				action: 'saturation',
-				setting: 'saturation',
-				feedback: 'saturation',
-				label: 'Saturation ',
-				choices: this.CHOICES_SATURATION,
-				category: 'Picture',
-			},
-			{
-				action: 'tint',
-				setting: 'tint',
-				feedback: 'tint',
-				label: 'Tint ',
-				choices: this.CHOICES_TINT,
-				category: 'Picture',
-			},*/
 		]
 
 		this.actions(this) // export actions
@@ -595,14 +575,14 @@ class LilliputMonitorInstance extends InstanceBase {
 						label: 'MV1-2',
 						id: 'mv1_2',
 						choices: system.CHOICES_SOURCE_MULTIVIEWER,
-						default: system.CHOICES_SOURC_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
+						default: system.CHOICES_SOURCE_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
 					},
 					{
 						type: 'dropdown',
 						label: 'MV3-4',
 						id: 'mv3_4',
 						choices: system.CHOICES_SOURCE_MULTIVIEWER,
-						default: system.CHOICES_SOURC_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
+						default: system.CHOICES_SOURCE_MULTIVIEWER.length > 0 ? system.CHOICES_SOURCE_MULTIVIEWER[0].id : '',
 					},
 				],
 				callback: async (action) => {
@@ -645,6 +625,96 @@ class LilliputMonitorInstance extends InstanceBase {
 					)
 				},
 			},
+			picture: {
+				name: 'Picture',
+				options: [
+					{
+						type: 'number',
+						label: 'Brightness',
+						id: 'brightness',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'number',
+						label: 'Contrast',
+						id: 'contrast',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'number',
+						label: 'Saturation',
+						id: 'saturation',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'number',
+						label: 'Tint',
+						id: 'tint',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'number',
+						label: 'Sharpness',
+						id: 'sharpness',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'number',
+						label: 'Backlight',
+						id: 'backlight',
+						default: 50,
+						min: 0,
+						max: 100,
+						required: true,
+						step: 1,
+					},
+					{
+						type: 'dropdown',
+						label: 'Color Temp',
+						id: 'color_temp',
+						choices: system.CHOICES_PICTURE_COLOR_TEMP,
+						default: system.CHOICES_PICTURE_COLOR_TEMP.length > 0 ? system.CHOICES_PICTURE_COLOR_TEMP[0].id : '',
+					},
+				],
+				callback: async (action) => {
+					await system.doAction(
+						'picture ' +
+							action.options.brightness +
+							',' +
+							action.options.contrast +
+							',' +
+							action.options.saturation +
+							',' +
+							action.options.tint +
+							',' +
+							action.options.sharpness +
+							',' +
+							action.options.backlight +
+							',' +
+							action.options.color_temp,
+					)
+				},
+			},
 			umd: {
 				name: 'UMD',
 				options: [
@@ -659,21 +729,8 @@ class LilliputMonitorInstance extends InstanceBase {
 						type: 'textinput',
 						label: 'Text',
 						id: 'text',
+						default: '',
 					},
-					/*{
-						type: 'dropdown',
-						label: 'Meter',
-						id: 'meter',
-						choices: system.CHOICES_AUDIO_METER,
-						default: system.CHOICES_AUDIO_METER.length > 0 ? system.CHOICES_AUDIO_METER[0].id : '',
-					},
-					{
-						type: 'dropdown',
-						label: 'Output (Right, Left)',
-						id: 'output',
-						choices: system.CHOICES_AUDIO_OUTPUT,
-						default: system.CHOICES_AUDIO_OUTPUT.length > 0 ? system.CHOICES_AUDIO_OUTPUT[0].id : '',
-					},*/
 				],
 				callback: async (action) => {
 					var text = action.options.text
@@ -688,96 +745,6 @@ class LilliputMonitorInstance extends InstanceBase {
 					await system.doAction('umd ' + action.options.tally + encodedText + ',val1a,val2a')
 				},
 			},
-			/*contrast: {
-				name: 'Contrast',
-				options: [
-					{
-						type: 'number',
-						label: 'Contrast',
-						id: 'contrast',
-						default: 50,
-						min: 0,
-						max: 100,
-						required: true,
-						step: 1,
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('contrast ' + action.options.contrast)
-				},
-			},
-			brightness: {
-				name: 'Brightness',
-				options: [
-					{
-						type: 'number',
-						label: 'Brightness',
-						id: 'brightness',
-						default: 50,
-						min: 0,
-						max: 100,
-						required: true,
-						step: 1,
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('brightness ' + action.options.brightness)
-				},
-			},
-			sharpness: {
-				name: 'Sharpness',
-				options: [
-					{
-						type: 'number',
-						label: 'Sharpness',
-						id: 'sharpness',
-						default: 50,
-						min: 0,
-						max: 100,
-						required: true,
-						step: 1,
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('sharpness ' + action.options.sharpness)
-				},
-			},
-			saturation: {
-				name: 'Saturation',
-				options: [
-					{
-						type: 'number',
-						label: 'Saturation',
-						id: 'saturation',
-						default: 50,
-						min: 0,
-						max: 100,
-						required: true,
-						step: 1,
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('saturation ' + action.options.saturation)
-				},
-			},
-			tint: {
-				name: 'Tint',
-				options: [
-					{
-						type: 'number',
-						label: 'Tint',
-						id: 'tint',
-						default: 50,
-						min: 0,
-						max: 100,
-						required: true,
-						step: 1,
-					},
-				],
-				callback: async (action) => {
-					await system.doAction('tint ' + action.options.tint)
-				},
-			},*/
 			customCommand: {
 				name: 'Custom Command',
 				options: [

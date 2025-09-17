@@ -1,6 +1,7 @@
 {
 	"id": "lilliput-monitor",
 	"name": "lilliput-monitor",
+	"shortname": "lilliput-monitor",
 	"legacyIds": [],
 	"version": "0.0.0",
 	"description": "Lilliput Monitor",
@@ -13,7 +14,6 @@
 	"keywords": ["Lilliput", "Monitor"],
 	"manufacturer": "Lilliput",
 	"products": ["Monitor"],
-	"shortname": "Lilliput Monitor",
 	"repository": "git+https://github.com/bitfocus/companion-module-lilliput-monitor.git",
 	"maintainers": [
 		{
